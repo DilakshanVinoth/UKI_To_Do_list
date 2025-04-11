@@ -2,6 +2,7 @@
 window.addEventListener('DOMContentLoaded', () => {
     loadTasksFromStorage();
     loadCompletedTasksFromStorage();
+    updateTaskCount();
   });
   
   // Handle adding a task
@@ -21,7 +22,8 @@ window.addEventListener('DOMContentLoaded', () => {
   
     addTaskToDOM(task);
     saveTaskToStorage(task);
-    taskInput.value = ''; // Clear input after adding task
+    updateTaskCount();
+    taskInput.value = '';
   });
   
   // Save task to LocalStorage
@@ -57,19 +59,19 @@ window.addEventListener('DOMContentLoaded', () => {
     completed.forEach(addTaskToHistoryDOM);
   }
   
-  // Add task to the DOM (active task list)
+  // Add task to DOM
   function addTaskToDOM(task) {
     const taskItem = createTaskElement(task, false);
     document.getElementById('taskList').appendChild(taskItem);
   }
   
-  // Add completed task to the History section
+  // Add task to history DOM
   function addTaskToHistoryDOM(task) {
     const taskItem = createTaskElement(task, true);
     document.getElementById('historyList').appendChild(taskItem);
   }
   
-  // Create a task element (either active or completed)
+  // Create task item
   function createTaskElement(task, isHistory = false) {
     let colorClass = '';
     switch (task.priority) {
@@ -83,14 +85,14 @@ window.addEventListener('DOMContentLoaded', () => {
     taskItem.setAttribute('data-id', task.id);
   
     const colorBar = document.createElement('div');
-    colorBar.className = `${colorClass} absolute top-0 left-0 w-2 h-full rounded-l-lg`;
+    colorBar.className = isHistory ? 'w-2 h-full rounded-l-lg' : `${colorClass} absolute top-0 left-0 w-2 h-full rounded-l-lg`;
   
     const content = document.createElement('div');
     content.className = 'flex items-center space-x-2 pl-4 w-full';
   
     const checkbox = document.createElement('input');
     checkbox.type = 'checkbox';
-    checkbox.disabled = isHistory; // Disable checkbox in history
+    checkbox.disabled = isHistory;
     checkbox.checked = isHistory;
     checkbox.className = 'form-checkbox h-5 w-5 text-green-600 cursor-pointer';
   
@@ -104,14 +106,15 @@ window.addEventListener('DOMContentLoaded', () => {
     taskItem.appendChild(colorBar);
     taskItem.appendChild(content);
   
-    // Move task to history on checkbox change
+    // Handle move to history
     if (!isHistory) {
       checkbox.addEventListener('change', function () {
         if (checkbox.checked) {
-          removeTaskFromStorage(task.id); // Remove from active tasks
-          taskItem.remove(); // Remove from active task list in DOM
-          saveToCompletedStorage(task); // Save as completed in LocalStorage
-          addTaskToHistoryDOM(task); // Add to the history section
+          removeTaskFromStorage(task.id);
+          taskItem.remove();
+          saveToCompletedStorage(task);
+          addTaskToHistoryDOM(task);
+          updateTaskCount();
         }
       });
     }
@@ -122,11 +125,19 @@ window.addEventListener('DOMContentLoaded', () => {
   // Toggle visibility of the history section
   document.getElementById('historyBtn').addEventListener('click', function () {
     const historySection = document.getElementById('historyList');
-    historySection.classList.toggle('hidden'); // Toggle visibility
-    if (historySection.classList.contains('hidden')) {
-      this.textContent = 'Show History'; // Change button text when hidden
-    } else {
-      this.textContent = 'Hide History'; // Change button text when shown
-    }
+    historySection.classList.toggle('hidden');
+    this.textContent = historySection.classList.contains('hidden') ? 'Show History' : 'Hide History';
   });
   
+  // Task count function
+  function updateTaskCount() {
+    const tasks = JSON.parse(localStorage.getItem('tasks')) || [];
+    let counter = document.getElementById('taskCounter');
+    if (!counter) {
+      counter = document.createElement('div');
+      counter.id = 'taskCounter';
+      counter.className = 'mt-4 text-center font-semibold text-blue-800';
+      document.querySelector('#taskList').before(counter);
+    }
+    counter.textContent = `Tasks to complete: ${tasks.length}`;
+  }
